@@ -20,7 +20,7 @@ st.write(stock_data)
 
 # Filter actual stock data (rows with valid 'open', 'high', and 'low')
 actual_stock_data = stock_data[
-    stock_data['open'].notna() & stock_data['high'].notna() & stock_data['low'].notna()
+    stock_data['close'].notna()
 ]
 
 # Filter forecasted stock data (NaN in at least one of 'open', 'high', or 'low')
