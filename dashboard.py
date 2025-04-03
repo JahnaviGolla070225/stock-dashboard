@@ -18,9 +18,10 @@ stock_data = pd.DataFrame(response_actual.data)
 st.write("### Latest Stock Prices")
 st.write(stock_data)
 
-# Separate actual and forecast data
-actual_stock_data = stock_data[stock_data['open'].notna()]
-forecast_stock_data = stock_data[stock_data['open'].isna()]
+# Separate actual and forecast data based on non-null values in 'open', 'high', or 'low' columns
+# Forecast data will have None in these columns
+actual_stock_data = stock_data[stock_data['open'].notna() & stock_data['high'].notna() & stock_data['low'].notna()]
+forecast_stock_data = stock_data[stock_data['open'].isna() | stock_data['high'].isna() | stock_data['low'].isna()]
 
 # Line Chart for Stock Prices
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -39,11 +40,14 @@ ax.set_ylabel("Price (USD)")
 ax.legend()
 
 # Format x-axis for better readability
-ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
+ax.xaxis.set_major_locator(mdates.AutoDateLocator())
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
-# Rotate the x-axis labels
-plt.xticks(rotation=45)
+# Rotate the x-axis labels to make them more readable
+plt.xticks(rotation=45, ha='right')
+
+# Adjust the figure size for better spacing
+fig.tight_layout()
 
 # Display the chart in Streamlit
 st.pyplot(fig)
