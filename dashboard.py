@@ -1,51 +1,49 @@
 import pandas as pd
 import streamlit as st
-import sqlite3
-import plotly.express as px
+from supabase import create_client
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
-# Streamlit App
-st.title("📈 Real-Time Stock Dashboard")
+# Connect to Supabase
+supabase_url = "https://rkeeqruvpphoadspsssy.supabase.co"
+supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZWVxcnV2cHBob2Fkc3Bzc3N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2NjEzNTcsImV4cCI6MjA1OTIzNzM1N30.aXsli_TP0Wts2VYqaWZFP5S_tuoi6a_xZCaiCo1k0V0"
+# Create Supabase client
+supabase = create_client(supabase_url, supabase_key)
 
-# Connect to SQLite database
-conn = sqlite3.connect("stock_data.db")
+# Fetch actual stock data from Supabase
+response_actual = supabase.table("stocks").select("*").order("timestamp", desc=True).limit(100).execute()
+stock_data = pd.DataFrame(response_actual.data)
 
-# Fetch actual stock data
-query_actual = "SELECT timestamp AS date, close FROM stocks ORDER BY timestamp DESC LIMIT 100"
-actual_df = pd.read_sql(query_actual, conn)
-
-# Fetch forecast data
-query_forecast = "SELECT ds AS date, yhat AS predicted_close FROM stock_forecast ORDER BY ds DESC LIMIT 50"
-forecast_df = pd.read_sql(query_forecast, conn)
-
-# Close database connection
-conn.close()
-
-# Convert 'date' to datetime format
-actual_df['date'] = pd.to_datetime(actual_df['date'])
-forecast_df['date'] = pd.to_datetime(forecast_df['date'])
-
-# Merge actual and forecast data
-actual_df['Type'] = "Actual"
-forecast_df['Type'] = "Prediction"
-
-# Rename columns to match
-actual_df.rename(columns={'close': 'Stock Price'}, inplace=True)
-forecast_df.rename(columns={'predicted_close': 'Stock Price'}, inplace=True)
-
-# Combine both dataframes
-combined_df = pd.concat([actual_df, forecast_df])
-
-# Plot
-fig = px.line(combined_df, x="date", y="Stock Price", color="Type",
-              title="Actual vs Predicted Stock Prices",
-              labels={"date": "Date", "Stock Price": "Price ($)"})
-
-# Display chart
-st.plotly_chart(fig)
-
-# Show actual and forecast data in tables
+# Check if the data has been successfully fetched
 st.write("### Latest Stock Prices")
-st.dataframe(actual_df.head(10))
+st.write(stock_data)
 
-st.write("### Forecasted Stock Prices")
-st.dataframe(forecast_df.head(10))
+# Separate actual and forecast data
+actual_stock_data = stock_data[stock_data['close'].notna()]
+forecast_stock_data = stock_data[stock_data['close'].isna()]
+
+# Line Chart for Stock Prices
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Plot Actual Data in Blue
+ax.plot(pd.to_datetime(actual_stock_data['timestamp']), actual_stock_data['close'], label="Actual", color="blue")
+
+# Plot Forecast Data in Red (Predictions) if any
+if not forecast_stock_data.empty:
+    ax.plot(pd.to_datetime(forecast_stock_data['timestamp']), forecast_stock_data['close'], label="Forecast", color="red")
+
+# Customize the plot
+ax.set_title("Stock Price with Predictions")
+ax.set_xlabel("Date")
+ax.set_ylabel("Price (USD)")
+ax.legend()
+
+# Format x-axis for better readability
+ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+
+# Rotate the x-axis labels
+plt.xticks(rotation=45)
+
+# Display the chart in Streamlit
+st.pyplot(fig)
