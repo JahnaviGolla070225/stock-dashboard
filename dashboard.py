@@ -14,19 +14,30 @@ supabase = create_client(supabase_url, supabase_key)
 response = supabase.table("stocks").select("*").order("timestamp", desc=True).limit(100).execute()
 stock_data = pd.DataFrame(response.data)
 
-# Check if the data has been successfully fetched
+# Streamlit App Setup
+st.title("📈 Real-Time Stock Dashboard")
 st.write("### Latest Stock Prices")
-st.write(stock_data)
 
-# Filter actual stock data (rows with valid 'open', 'high', and 'low')
+# Show the raw stock data from Supabase
+st.write("#### Raw Stock Data (from Supabase):")
+st.dataframe(stock_data)
+
+# Filter actual stock data (rows with valid 'open', 'high', 'low', 'close')
 actual_stock_data = stock_data[
-    stock_data['close'].notna()
+    stock_data['open'].notna() & stock_data['high'].notna() & stock_data['low'].notna() & stock_data['close'].notna()
 ]
 
-# Filter forecasted stock data (NaN in at least one of 'open', 'high', or 'low')
+# Filter forecasted stock data (rows where 'open', 'high', 'low' is NaN)
 forecast_stock_data = stock_data[
     stock_data[['open', 'high', 'low']].isna().any(axis=1)
 ]
+
+# Show the filtered actual and forecast data
+st.write("#### Filtered Actual Stock Data:")
+st.dataframe(actual_stock_data)
+
+st.write("#### Filtered Forecast Stock Data:")
+st.dataframe(forecast_stock_data)
 
 # Line Chart for Stock Prices
 fig, ax = plt.subplots(figsize=(10, 6))
