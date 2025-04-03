@@ -23,9 +23,7 @@ st.write("#### Raw Stock Data (from Supabase):")
 st.dataframe(stock_data)
 
 # Filter actual stock data (rows with valid 'open', 'high', 'low', 'close')
-actual_stock_data = stock_data[
-    stock_data['open']>0
-]
+actual_stock_data = stock_data[stock_data['open'] > 0]
 
 # Filter forecasted stock data (rows where 'open', 'high', 'low' is NaN)
 forecast_stock_data = stock_data[
