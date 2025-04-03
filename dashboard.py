@@ -1,33 +1,51 @@
 import pandas as pd
 import streamlit as st
-from supabase import create_client, Client
+import sqlite3
+import plotly.express as px
 
-# Connect to Supabase
-supabase_url = "https://rkeeqruvpphoadspsssy.supabase.co"
-supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZWVxcnV2cHBob2Fkc3Bzc3N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2NjEzNTcsImV4cCI6MjA1OTIzNzM1N30.aXsli_TP0Wts2VYqaWZFP5S_tuoi6a_xZCaiCo1k0V0"
-# Create Supabase client
-supabase = create_client(supabase_url, supabase_key)
-
-# Streamlit App Title
+# Streamlit App
 st.title("📈 Real-Time Stock Dashboard")
 
-# Fetch Data from Supabase
-try:
-    response = supabase.table("stocks").select("*").order("timestamp", desc=True).limit(10).execute()
-    if response.data:
-        stock_data = pd.DataFrame(response.data)
-        st.write("### Latest Stock Prices")
-        st.dataframe(stock_data)
-    else:
-        st.warning("⚠️ No stock data found.")
-except Exception as e:
-    st.error(f"❌ Error fetching data: {e}")
+# Connect to SQLite database
+conn = sqlite3.connect("stock_data.db")
 
-# Line Chart for Stock Prices
-if not stock_data.empty:
-    st.write("### Stock Price Trend (Last 10 Entries)")
-    st.line_chart(stock_data.set_index("timestamp")[["close"]])
+# Fetch actual stock data
+query_actual = "SELECT timestamp AS date, close FROM stocks ORDER BY timestamp DESC LIMIT 100"
+actual_df = pd.read_sql(query_actual, conn)
 
-# Refresh Button
-if st.button("🔄 Refresh Data"):
-    st.experimental_rerun()
+# Fetch forecast data
+query_forecast = "SELECT ds AS date, yhat AS predicted_close FROM stock_forecast ORDER BY ds DESC LIMIT 50"
+forecast_df = pd.read_sql(query_forecast, conn)
+
+# Close database connection
+conn.close()
+
+# Convert 'date' to datetime format
+actual_df['date'] = pd.to_datetime(actual_df['date'])
+forecast_df['date'] = pd.to_datetime(forecast_df['date'])
+
+# Merge actual and forecast data
+actual_df['Type'] = "Actual"
+forecast_df['Type'] = "Prediction"
+
+# Rename columns to match
+actual_df.rename(columns={'close': 'Stock Price'}, inplace=True)
+forecast_df.rename(columns={'predicted_close': 'Stock Price'}, inplace=True)
+
+# Combine both dataframes
+combined_df = pd.concat([actual_df, forecast_df])
+
+# Plot
+fig = px.line(combined_df, x="date", y="Stock Price", color="Type",
+              title="Actual vs Predicted Stock Prices",
+              labels={"date": "Date", "Stock Price": "Price ($)"})
+
+# Display chart
+st.plotly_chart(fig)
+
+# Show actual and forecast data in tables
+st.write("### Latest Stock Prices")
+st.dataframe(actual_df.head(10))
+
+st.write("### Forecasted Stock Prices")
+st.dataframe(forecast_df.head(10))
