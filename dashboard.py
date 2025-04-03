@@ -10,18 +10,20 @@ supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 # Create Supabase client
 supabase = create_client(supabase_url, supabase_key)
 
-# Fetch actual stock data from Supabase
-response_actual = supabase.table("stocks").select("*").order("timestamp", desc=True).limit(100).execute()
-stock_data = pd.DataFrame(response_actual.data)
+
+# Fetch stock data from Supabase
+response = supabase.table("stocks").select("*").order("timestamp", desc=True).limit(100).execute()
+stock_data = pd.DataFrame(response.data)
 
 # Check if the data has been successfully fetched
 st.write("### Latest Stock Prices")
 st.write(stock_data)
 
-# Separate actual and forecast data based on non-null values in 'open', 'high', or 'low' columns
-# Forecast data will have None in these columns
-actual_stock_data = stock_data[stock_data['open'].notna() & stock_data['high'].notna() & stock_data['low'].notna()]
-forecast_stock_data = stock_data[stock_data['open'].isna() | stock_data['high'].isna() | stock_data['low'].isna()]
+# Filter actual stock data (non-NaN for 'open', 'high', and 'low')
+actual_stock_data = stock_data.dropna(subset=['open', 'high', 'low'])
+
+# Filter forecasted stock data (NaN for 'open', 'high', or 'low')
+forecast_stock_data = stock_data[stock_data[['open', 'high', 'low']].isna().any(axis=1)]
 
 # Line Chart for Stock Prices
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -29,7 +31,7 @@ fig, ax = plt.subplots(figsize=(10, 6))
 # Plot Actual Data in Blue
 ax.plot(pd.to_datetime(actual_stock_data['timestamp']), actual_stock_data['close'], label="Actual", color="blue")
 
-# Plot Forecast Data in Red (Predictions) if any
+# Plot Forecast Data in Red if present
 if not forecast_stock_data.empty:
     ax.plot(pd.to_datetime(forecast_stock_data['timestamp']), forecast_stock_data['close'], label="Forecast", color="red")
 
@@ -43,7 +45,7 @@ ax.legend()
 ax.xaxis.set_major_locator(mdates.AutoDateLocator())
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
-# Rotate the x-axis labels to make them more readable
+# Rotate the x-axis labels for better visibility
 plt.xticks(rotation=45, ha='right')
 
 # Adjust the figure size for better spacing
