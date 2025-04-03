@@ -22,8 +22,10 @@ st.write("### Latest Stock Prices")
 st.write("#### Raw Stock Data (from Supabase):")
 st.dataframe(stock_data)
 
-# Filter actual stock data (rows with valid 'open', 'high', 'low', 'close')
-actual_stock_data = stock_data[stock_data['open'] > 0]
+
+response_actual = supabase.table("stocks").select("timestamp, open, high, low, close, volume").filter("timestamp", "<=", "CURRENT_DATE").order("timestamp", desc=True).execute()
+actual_stock_data = pd.DataFrame(response_actual.data)
+
 
 # Filter forecasted stock data (rows where 'open', 'high', 'low' is NaN)
 forecast_stock_data = stock_data[
