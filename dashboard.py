@@ -24,7 +24,7 @@ st.dataframe(stock_data)
 
 # Filter actual stock data (rows with valid 'open', 'high', 'low', 'close')
 actual_stock_data = stock_data[
-    stock_data['close'].notna()
+    stock_data['open'].notna()
 ]
 
 # Filter forecasted stock data (rows where 'open', 'high', 'low' is NaN)
