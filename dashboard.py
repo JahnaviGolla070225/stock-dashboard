@@ -1,38 +1,33 @@
-import streamlit as st
 import pandas as pd
-import sqlite3
-import matplotlib.pyplot as plt
+import streamlit as st
+from supabase import create_client, Client
 
-# Connect to SQLite database
-conn = sqlite3.connect("stock_data.db")
+# Connect to Supabase
+supabase_url = "https://rkeeqruvpphoadspsssy.supabase.co"
+supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZWVxcnV2cHBob2Fkc3Bzc3N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2NjEzNTcsImV4cCI6MjA1OTIzNzM1N30.aXsli_TP0Wts2VYqaWZFP5S_tuoi6a_xZCaiCo1k0V0"
+# Create Supabase client
+supabase = create_client(supabase_url, supabase_key)
 
-# Load actual stock data
-query_actual = "SELECT Datetime as Date, Close FROM stocks ORDER BY Datetime ASC"
-actual_df = pd.read_sql(query_actual, conn)
+# Streamlit App Title
+st.title("📈 Real-Time Stock Dashboard")
 
-# Load forecast data
-query_forecast = "SELECT Date, Predicted_Close, Lower_Bound, Upper_Bound FROM stock_forecast ORDER BY Date ASC"
-forecast_df = pd.read_sql(query_forecast, conn)
+# Fetch Data from Supabase
+try:
+    response = supabase.table("stocks").select("*").order("timestamp", desc=True).limit(10).execute()
+    if response.data:
+        stock_data = pd.DataFrame(response.data)
+        st.write("### Latest Stock Prices")
+        st.dataframe(stock_data)
+    else:
+        st.warning("⚠️ No stock data found.")
+except Exception as e:
+    st.error(f"❌ Error fetching data: {e}")
 
-conn.close()
+# Line Chart for Stock Prices
+if not stock_data.empty:
+    st.write("### Stock Price Trend (Last 10 Entries)")
+    st.line_chart(stock_data.set_index("timestamp")[["close"]])
 
-# Convert date columns to datetime
-actual_df['Date'] = pd.to_datetime(actual_df['Date'])
-forecast_df['Date'] = pd.to_datetime(forecast_df['Date'])
-
-# Streamlit Dashboard UI
-st.title("📈 Stock Price Prediction Dashboard")
-
-# Show actual stock prices
-st.subheader("Historical Stock Prices")
-st.line_chart(actual_df.set_index("Date")["Close"])
-
-# Show forecast data
-st.subheader("Stock Price Forecast")
-fig, ax = plt.subplots()
-ax.plot(forecast_df["Date"], forecast_df["Predicted_Close"], label="Predicted Price", color="blue")
-ax.fill_between(forecast_df["Date"], forecast_df["Lower_Bound"], forecast_df["Upper_Bound"], color="blue", alpha=0.2)
-ax.set_xlabel("Date")
-ax.set_ylabel("Stock Price")
-ax.legend()
-st.pyplot(fig)
+# Refresh Button
+if st.button("🔄 Refresh Data"):
+    st.experimental_rerun()
