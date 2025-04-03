@@ -19,8 +19,8 @@ st.write("### Latest Stock Prices")
 st.write(stock_data)
 
 # Separate actual and forecast data
-actual_stock_data = stock_data[stock_data['close'].notna()]
-forecast_stock_data = stock_data[stock_data['close'].isna()]
+actual_stock_data = stock_data[stock_data['open'].notna()]
+forecast_stock_data = stock_data[stock_data['open'].isna()]
 
 # Line Chart for Stock Prices
 fig, ax = plt.subplots(figsize=(10, 6))
