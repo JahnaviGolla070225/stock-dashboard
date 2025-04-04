@@ -23,7 +23,13 @@ st.write("#### Raw Stock Data (from Supabase):")
 st.dataframe(stock_data)
 
 
-response_actual = supabase.table("stocks").select("timestamp, open, high, low, close, volume").filter("timestamp", "<=", "CURRENT_DATE").order("timestamp", desc=True).execute()
+response_actual = (
+    supabase.table("stocks")
+    .select("timestamp, open, high, low, close, volume")
+    .filter("timestamp", "<=", today_date)  # Use formatted date instead of "CURRENT_DATE"
+    .order("timestamp", desc=True)
+    .execute()
+)
 actual_stock_data = pd.DataFrame(response_actual.data)
 
 
