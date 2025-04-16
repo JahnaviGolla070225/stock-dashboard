@@ -80,4 +80,4 @@ import streamlit as st
 st.title("📈 Stock Forecast Dashboard")
 company = st.selectbox("Select Company", ["AAPL", "MSFT", "GOOGL", "AMZN"])
 forecast_days = st.radio("Prediction Duration", [7, 30])
-model_choice = st.multiselect("Choose Models", ["Prophet", "ARIMA", "LSTM", "XGBoost", "Linear Regression"])
+model_choice = st.selectbox("Choose Models", ["Prophet", "ARIMA", "LSTM", "XGBoost", "Linear Regression"])
